@@ -1,2 +1,0 @@
-#include "smart_card.h"
-#include <Wire.h>
