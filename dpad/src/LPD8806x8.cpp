@@ -110,30 +110,29 @@ void LPD8806x8::updatePins() {
   PORT2_DDR = 0xff;
 
   CONTROL_DDR = 0xff;
+  CLOCK_DISABLE();
+  UNSELECT_STRIPS();
 }
 
 void LPD8806x8::show(const StripImage* img, const Palette* pal) {
 
   for (uint8_t n = 0; n < 128; ++n) {
     for (uint8_t ix = 0; ix < 3; ++ix) {
-
       // Load the data into all of the shift registers.
-      CONTROL_PORT = CLOCK_LOAD_INHIBIT_HIGH | (0x0) << 2 | (0x0);
       PORT1_DATA = pal->_c[img->_c[n]].grb[ix];
       PORT2_DATA = pal->_c[img->_c[n]].grb[ix];
-      CONTROL_PORT &= ~LOAD_INHIBIT_HIGH;
-      CONTROL_PORT |= LOAD_INHIBIT_HIGH;
-
+      LOAD_STRIP(0);
+      UNSELECT_STRIPS();
+      
       clockOutputs();
     }
   }
     
   for (int i = 0; i < LATCH_BYTES; ++i) {
-    CONTROL_PORT = CLOCK_LOAD_INHIBIT_HIGH | 0x0;
     PORT1_DATA = 0;
     PORT2_DATA = 0;
-    CONTROL_PORT &= ~LOAD_INHIBIT_HIGH;
-    CONTROL_PORT |= LOAD_INHIBIT_HIGH;
+    LOAD_STRIP(0);
+    UNSELECT_STRIPS();
 
     clockOutputs();
   }
@@ -145,29 +144,25 @@ void LPD8806x8::show(const Image* img, const Palette* pal) {
     for (uint8_t ix = 0; ix < 3; ++ix) {
 
       // Load the data into all of the shift registers.
-      CONTROL_PORT = CLOCK_LOAD_INHIBIT_HIGH | (0x0) << 2 | (0x0);
       PORT1_DATA = pal->_c[img->_c[0][n]].grb[ix];
       PORT2_DATA = pal->_c[img->_c[1][n]].grb[ix];
-      CONTROL_PORT &= ~LOAD_INHIBIT_HIGH;
-      CONTROL_PORT |= LOAD_INHIBIT_HIGH;
+      LOAD_STRIP(0);
+      UNSELECT_STRIPS();
 
-      CONTROL_PORT = CLOCK_LOAD_INHIBIT_HIGH | (0x1) << 2 | (0x1);
       PORT1_DATA = pal->_c[img->_c[2][n]].grb[ix];
       PORT2_DATA = pal->_c[img->_c[3][n]].grb[ix];
-      CONTROL_PORT &= ~LOAD_INHIBIT_HIGH;
-      CONTROL_PORT |= LOAD_INHIBIT_HIGH;
+      LOAD_STRIP(1);
+      UNSELECT_STRIPS();
 
-      CONTROL_PORT = CLOCK_LOAD_INHIBIT_HIGH | (0x2) << 2 | (0x2);
       PORT1_DATA = pal->_c[img->_c[4][n]].grb[ix];
       PORT2_DATA = pal->_c[img->_c[5][n]].grb[ix];
-      CONTROL_PORT &= ~LOAD_INHIBIT_HIGH;
-      CONTROL_PORT |= LOAD_INHIBIT_HIGH;
+      LOAD_STRIP(2);
+      UNSELECT_STRIPS();
 
-      CONTROL_PORT = CLOCK_LOAD_INHIBIT_HIGH | (0x3) << 2 | (0x3);
       PORT1_DATA = pal->_c[img->_c[6][n]].grb[ix];
       PORT2_DATA = pal->_c[img->_c[7][n]].grb[ix];
-      CONTROL_PORT &= ~LOAD_INHIBIT_HIGH;
-      CONTROL_PORT |= LOAD_INHIBIT_HIGH;
+      LOAD_STRIP(3);
+      UNSELECT_STRIPS();
 
       clockOutputs();
     }
@@ -175,11 +170,10 @@ void LPD8806x8::show(const Image* img, const Palette* pal) {
     
   for (int i = 0; i < LATCH_BYTES; ++i) {
     for (int j = 0; j < 4; ++j) {
-      CONTROL_PORT = CLOCK_LOAD_INHIBIT_HIGH | (j) << 2 | (j);
       PORT1_DATA = 0;
       PORT2_DATA = 0;
-      CONTROL_PORT &= ~LOAD_INHIBIT_HIGH;
-      CONTROL_PORT |= LOAD_INHIBIT_HIGH;
+      LOAD_STRIP(j);
+      UNSELECT_STRIPS();
     }
 
     clockOutputs();
@@ -190,14 +184,14 @@ inline void LPD8806x8::clockOutputs()
 {
   // Here, we need to keep the load inhibit pin high, but the select bits
   // don't matter.
-  CONTROL_PORT = LOAD_INHIBIT_HIGH | CLOCK_HIGH | CLOCK_INHIBIT_HIGH; // clock high
-  CONTROL_PORT = LOAD_INHIBIT_HIGH | CLOCK_HIGH; // clock inhibit low;
+  CLOCK_HIGH();
+  CLOCK_ENABLE();
     
   for (uint8_t i = 0; i < 7; ++i) {
-    CONTROL_PORT = LOAD_INHIBIT_HIGH | CLOCK_LOW; // clock low
-    CONTROL_PORT = LOAD_INHIBIT_HIGH | CLOCK_HIGH; // clock high
+    CLOCK_LOW();
+    CLOCK_HIGH();
   }
 
-  CONTROL_PORT = CLOCK_LOAD_INHIBIT_HIGH | CLOCK_HIGH;
-  CONTROL_PORT = CLOCK_LOAD_INHIBIT_HIGH;
+  CLOCK_DISABLE();
+  CLOCK_LOW();
 }
