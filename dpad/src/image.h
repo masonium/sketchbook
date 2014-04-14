@@ -42,6 +42,7 @@ struct Palette
     c.v.b = 0x80 | (b >> 1);
   }
 
+  void set_color_hsv(uint8_t index, uint8_t hue, uint8_t saturation, uint8_t value);
   /** 
    * Rotate the first 'num' colors in the palette.
    */
