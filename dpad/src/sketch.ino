@@ -4,7 +4,6 @@
 #include "smart_card.h"
 #include "LPD8806x8.h"
 
-
 Image img;
 Palette pal(256);
 
@@ -25,44 +24,22 @@ const uint8_t STRIP_IMAGE_LENGTH = 128;
 
 StripImage stripImage(STRIP_IMAGE_LENGTH);
 
-
 void setup()
 {
   Serial.begin(9600);
   Serial.println("Starting...");
-
-  //stripSpeedTest();
-  //smart_card_test();
-
-  int i = 0;
-  const int mut = 4;
-
-  const int num_colors = 8;
-  for (uint8_t j = 0; j < mut; ++j)
-    pal.set_color(i++, 255, 0, 0);
-  for (uint8_t j = 0; j < mut; ++j)
-    pal.set_color(i++, 255, 128, 0);
-  for (uint8_t j = 0; j < mut; ++j)
-    pal.set_color(i++, 255, 255, 0);
-  for (uint8_t j = 0; j < mut; ++j)
-    pal.set_color(i++, 0, 255, 0);
-  for (uint8_t j = 0; j < mut; ++j)
-    pal.set_color(i++, 0, 0, 255);
-  for (uint8_t j = 0; j < mut; ++j)
-    pal.set_color(i++, 128, 0, 255);
-  for (uint8_t j = 0; j < mut; ++j)
-    pal.set_color(i++, 255, 255, 255);
-  for (uint8_t j = 0; j < mut; ++j)
-    pal.set_color(i++, 0, 0, 0);
   
   for (uint8_t i = 0; i < 128; ++i)
-    stripImage.set_color(i, 24);
+  {
+    pal.set_color_hsv(i, i*2, 255, 128);
+    stripImage.set_color(i, i);
+  }
 }
 
 void loop()
 {
-  delay(34);
-  //pal.cycle_colors(32);
+  delay(100);
+  pal.cycle_colors(128);
   
   teststrip.show(&stripImage, &pal);
   //loopImageTest();
@@ -217,7 +194,8 @@ void stripSpeedTest(void)
       img.set_color(i, j, i*j);
   elapsed = micros() - start;
   
-  Serial.printf("%d us\n", elapsed);
+  Serial.print(elapsed);
+  Serial.println(" us");
 
   Serial.print("Palette speed:");
   start = micros();
@@ -225,11 +203,13 @@ void stripSpeedTest(void)
     pal.set_color(i, i+1, i*2, i * i);
 
   elapsed = micros() - start;
-  Serial.printf("%d us\n", elapsed);
+  Serial.print(elapsed);
+  Serial.println(" us");
 
   Serial.print("LPD8806x8 show speed: ");
   start = micros();
   teststrip.show(&img, &pal);
   elapsed = micros() - start;
-  Serial.printf("%d us\n", elapsed);
+  Serial.print(elapsed);
+  Serial.println(" us");
 }
