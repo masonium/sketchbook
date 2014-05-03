@@ -3,9 +3,7 @@
 #include "clock.h"
 #include "smart_card.h"
 #include "LPD8806x8.h"
-
-Image img;
-Palette pal(256);
+//#include "test_image.h"
 
 uint8_t pin = 18;
 
@@ -23,26 +21,90 @@ LPD8806x8 teststrip;
 const uint8_t STRIP_IMAGE_LENGTH = 128;
 
 StripImage stripImage(STRIP_IMAGE_LENGTH);
+Palette pal(256);
+Image img;
 
 void setup()
 {
   Serial.begin(9600);
   Serial.println("Starting...");
+
+  Serial.println("Loading palette.");
   
-  for (uint8_t i = 0; i < 128; ++i)
+  for (int i = 0; i < 8; ++i)
+    pal.set_color_hsv(i, i*32, 255, 128);
+
+  for (int y = 0; y < 32; ++y)
+    for(int x = 0; x < 32; ++x)
+    {
+      int cx = x - 16;
+      int cy = y - 16;
+      img(x, 31-y) = ((cx + cy) / 4) % 8;
+    }
+}
+
+uint8_t blocking_read()
+{
+  while ( !Serial.available() );
+  uint8_t x = Serial.read();
+  Serial.write('\n');
+  return x;
+}
+
+void read_color()
+{
+  uint8_t r = blocking_read();
+  uint8_t g = blocking_read();
+  uint8_t b = blocking_read();
+  pal.set_color(0, r, g, b);
+    
+  for (uint8_t y = 0; y < 32; ++y)
+    for (uint8_t x = 0; x < 32; ++x)
+      img(x, 31-y) = 0;
+  
+  teststrip.show(&img, &pal);
+}
+
+void read_new_image()
+{
+  uint8_t num_p = Serial.read();
+  Serial.println((int)num_p);
+  for (uint8_t i = 0; i < num_p; ++i)
   {
-    pal.set_color_hsv(i, i*2, 255, 128);
-    stripImage.set_color(i, i);
+    uint8_t r = blocking_read();
+    uint8_t g = blocking_read();
+    uint8_t b = blocking_read();
+    pal.set_color(i, r, g, b);
   }
+  
+  for (uint8_t y = 0; y < 32; ++y)
+    for (uint8_t x = 0; x < 32; ++x)
+      img(x, 31-y) = blocking_read();
+  
+  teststrip.show(&img, &pal);
 }
 
 void loop()
 {
   delay(100);
-  pal.cycle_colors(128);
-  
-  teststrip.show(&stripImage, &pal);
-  //loopImageTest();
+
+  if (Serial.available())
+  {
+    switch(blocking_read())
+    {
+    case 0:
+      read_new_image();
+      break;
+    case 1:
+      read_color();
+      break;
+    default:
+      break;
+    }
+  }
+
+  //pal.cycle_colors(64);
+  teststrip.show(&img, &pal);
 }
 
 void smart_card_test()
