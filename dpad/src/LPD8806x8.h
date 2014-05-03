@@ -5,7 +5,7 @@
 #include "image.h"
 
 const uint8_t STRIP_LENGTH = 128;
-const uint8_t LATCH_BYTES = (STRIP_LENGTH + 31) / 32;
+const uint8_t LATCH_BYTES = 1;//(STRIP_LENGTH + 31) / 32;
 
 /// PC0 - 37
 /// PC7 - 30

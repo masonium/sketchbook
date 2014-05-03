@@ -127,7 +127,7 @@ void LPD8806x8::show(const StripImage* img, const Palette* pal) {
       clockOutputs();
     }
   }
-    
+
   for (int i = 0; i < LATCH_BYTES; ++i) {
     PORT1_DATA = 0;
     PORT2_DATA = 0;
@@ -140,26 +140,27 @@ void LPD8806x8::show(const StripImage* img, const Palette* pal) {
 
 void LPD8806x8::show(const Image* img, const Palette* pal) {
 
+  CLOCK_DISABLE();
   for (uint8_t n = 0; n < STRIP_LENGTH; ++n) {
     for (uint8_t ix = 0; ix < 3; ++ix) {
 
       // Load the data into all of the shift registers.
       PORT1_DATA = pal->_c[img->_c[0][n]].grb[ix];
-      PORT2_DATA = pal->_c[img->_c[1][n]].grb[ix];
+      PORT2_DATA = pal->_c[img->_c[4][n]].grb[ix];
       LOAD_STRIP(0);
       UNSELECT_STRIPS();
 
-      PORT1_DATA = pal->_c[img->_c[2][n]].grb[ix];
-      PORT2_DATA = pal->_c[img->_c[3][n]].grb[ix];
+      PORT1_DATA = pal->_c[img->_c[1][n]].grb[ix];
+      PORT2_DATA = pal->_c[img->_c[5][n]].grb[ix];
       LOAD_STRIP(1);
       UNSELECT_STRIPS();
 
-      PORT1_DATA = pal->_c[img->_c[4][n]].grb[ix];
-      PORT2_DATA = pal->_c[img->_c[5][n]].grb[ix];
+      PORT1_DATA = pal->_c[img->_c[2][n]].grb[ix];
+      PORT2_DATA = pal->_c[img->_c[6][n]].grb[ix];
       LOAD_STRIP(2);
       UNSELECT_STRIPS();
 
-      PORT1_DATA = pal->_c[img->_c[6][n]].grb[ix];
+      PORT1_DATA = pal->_c[img->_c[3][n]].grb[ix];
       PORT2_DATA = pal->_c[img->_c[7][n]].grb[ix];
       LOAD_STRIP(3);
       UNSELECT_STRIPS();
@@ -184,14 +185,14 @@ inline void LPD8806x8::clockOutputs()
 {
   // Here, we need to keep the load inhibit pin high, but the select bits
   // don't matter.
-  CLOCK_HIGH();
   CLOCK_ENABLE();
-    
+  CLOCK_HIGH();
+  
   for (uint8_t i = 0; i < 7; ++i) {
     CLOCK_LOW();
     CLOCK_HIGH();
   }
 
-  CLOCK_DISABLE();
   CLOCK_LOW();
+  CLOCK_DISABLE();
 }
