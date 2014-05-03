@@ -33,13 +33,10 @@ struct Palette
   /**
    * Set the color specified for the given index.
    */
-  void set_color(uint8_t index, uint8_t r, uint8_t g, uint8_t b) {
-    color& c = _c[index];
-    // Input colors are assumed to be 8-bit and coverted into 7-bit with the
-    // high-bit set.
-    c.v.r = 0x80 | (r >> 1);
-    c.v.g = 0x80 | (g >> 1);
-    c.v.b = 0x80 | (b >> 1);
+  void set_color(uint8_t index, uint8_t r, uint8_t g, uint8_t b);
+  
+  void set_color(uint8_t index, uint32_t rgb) {
+    set_color(index, (rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff);
   }
 
   void set_color_hsv(uint8_t index, uint8_t hue, uint8_t saturation, uint8_t value);
@@ -86,7 +83,7 @@ public:
     
 class Image
 {
-private:
+public:
   uint8_t _c[8][128];
   friend class LPD8806x8;
   
