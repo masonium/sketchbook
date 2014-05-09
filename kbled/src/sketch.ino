@@ -3,19 +3,21 @@
 #include <Adafruit_NeoPixel.h>
 #include <TimerOne.h>
 #include <SoftwareSerial.h>
+#include "kbled.h"
 #include "sketch_types.h"
 
 const int CLK_PIN = 12;
 const int DATA_PIN = 11;
 
-const int DAMPER_PEDAL = 64;
-const int SOFT_PEDAL = 67;
 bool is_soft_pressed = false;
 bool is_damper_pressed = false;
 
 int color_mode = CM_RAINBOW;
 int decay = 16;
 
+const long UPDATES_PER_SEC = 60;
+
+KB::KBLed keyboard;
 Adafruit_NeoPixel strip(88, DATA_PIN);
 
 const char* NOTE_NAMES[]={"C ", "Cs", "D ", "Ds", "E ", "F ", "Fs", "G ", "Gs", "A ", "Bf", "B "};
@@ -33,7 +35,8 @@ note_t NOTE_MAP[128];
 
 // To save bytes, the first 35 are not included and are programatically
 // generated in the 'gamma' function
-PROGMEM prog_uchar GammaE[] = {3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5,
+PROGMEM prog_uchar GammaE[] = {
+         3, 3, 3, 3, 3, 4, 4, 4, 4, 5,  5,  5,  5,
 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 11, 11,
 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18,
 19, 19, 20, 21, 21, 22, 22, 23, 23, 24, 25, 25, 26, 27, 27, 28,
@@ -59,18 +62,6 @@ inline byte gamma(byte x) {
   return pgm_read_byte(&GammaE[x-35]);
 }
 
-void init_note_map()
-{
-  for (int i = 0; i < 128; ++i)
-    NOTE_MAP[i].index = -1;
-
-  const unsigned int LOW_A = 21;
-  for (unsigned int note = LOW_A; note < LOW_A + 88; ++note)
-  {
-    NOTE_MAP[note].index = note - LOW_A;
-  }
-}
-
 int note_octave(byte pitch)
 {
   return (pitch / 12) - 1;
@@ -81,87 +72,26 @@ const char* note_name(byte pitch)
   return NOTE_NAMES[pitch % 12];
 }
 
-PedalStatus debounce(bool* flag, byte value)
+
+inline void control_change(byte channel, byte number, byte value)
 {
-    if (!*flag && value > 40)
-    {
-      *flag = true;
-      return PS_DOWN;
-    }
-    if (*flag && value < 30);
-    {
-      *flag = false;
-      return PS_UP;
-    }
-    return PS_NONE;
+  keyboard.control_change(channel, number, value);
+}
+
+inline void note_off(byte channel, byte pitch, byte velocity)
+{
+  keyboard.note_off(channel, pitch, velocity);
 }
 
 
-void control_change(byte channel, byte number, byte value)
+inline void note_on(byte channel, byte pitch, byte velocity)
 {
-  if (number == DAMPER_PEDAL)
-  {
-    PedalStatus ps = debounce(&is_damper_pressed, value);
-    if (ps == PS_DOWN)
-    {
-      decay = 2;
-    }
-    if (ps == PS_UP)
-    {
-      decay = 10;
-    }
-        
-  }
-  else if (number == SOFT_PEDAL)
-  {
-    if (debounce(&is_soft_pressed, value) == PS_DOWN)
-    {
-      color_mode += 1;
-      color_mode %= CM_NUM_MODES;
-    }      
-  }
+  keyboard.note_on(channel, pitch, velocity);
 }
-
-void note_off(byte channel, byte pitch, byte velocity)
-{
-    note_t si = NOTE_MAP[pitch];
-    if (si.index >= 0)
-    {
-      strip.setPixelColor(si.index, 0, 0, 0);
-      strip.show();
-    }
-}
-
-
-void note_on(byte channel, byte pitch, byte velocity)
-{
-  if (velocity == 0)
-  {
-    note_off(channel, pitch, velocity);
-  }
-  else
-  {
-    note_t si = NOTE_MAP[pitch];
-    if (si.index >= 0)
-    {
-      unsigned char brightness = 255;
-      uint32_t color = brightness * 0x010101;
-      if (color_mode == CM_RAINBOW)
-      {
-        color = colors[color_index];
-      }
-      strip.setPixelColor(si.index, color);
-      strip.show();
-      color_index += 1;
-      color_index %= NUM_COLORS;
-    }
-  }
-}
-
-int count = 0;
 
 void timer_interrupt()
 {
+  keyboard.update( 1000 / UPDATES_PER_SEC );
   strip.show();
 }
 
@@ -171,15 +101,15 @@ void setup_timer()
   // clock prescaler of 8 (CS = 010b)
   // 33333 for 60 Hz 
   // CTC (cleared on clock match), (WGM=0100b)
-  Timer1.initialize( 1000000L / 60 );
+  Timer1.initialize( 1000000L / UPDATES_PER_SEC );
   Timer1.attachInterrupt(timer_interrupt);
 }
 
 void setup()
 {
   Serial.begin(9600);
-  init_note_map();
-
+  Serial1.begin(31250);
+  
   MIDI.begin(MIDI_CHANNEL_OMNI);
 
   MIDI.setHandleNoteOn(note_on);
